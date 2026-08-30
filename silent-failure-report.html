@@ -1,0 +1,611 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Silent Failure Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    background: #ffffff;
+    color: #1f2328;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 32px 64px;
+  }
+
+  /* Header */
+  .report-header {
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 24px;
+    margin-bottom: 36px;
+  }
+  .report-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #1f2328;
+  }
+  .report-header .subtitle {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #57606a;
+  }
+  .report-header .meta {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 12px;
+    color: #57606a;
+  }
+  .report-header .meta span strong { color: #1f2328; }
+
+  /* Section headings */
+  .section-heading {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2328;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Severity badge */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .badge-critical { background: #fde8e8; color: #9b1c1c; }
+  .badge-high     { background: #fff3e0; color: #7c3a00; }
+  .badge-medium   { background: #fffbea; color: #6b4c00; }
+  .badge-low      { background: #f0f4ff; color: #1e3a8a; }
+  .badge-doc      { background: #f0f4ff; color: #1e3a8a; }
+
+  /* Finding card */
+  .finding {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+
+  .finding-header {
+    padding: 14px 18px;
+    background: #f7f8fa;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .finding-number {
+    font-size: 12px;
+    font-weight: 700;
+    color: #57606a;
+    min-width: 22px;
+    padding-top: 2px;
+  }
+  .finding-header-text { flex: 1; }
+  .finding-header-text h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1f2328;
+    line-height: 1.4;
+  }
+  .finding-slide {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #57606a;
+    font-style: italic;
+  }
+  .finding-meta {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .tag {
+    font-size: 11px;
+    background: #e5e7eb;
+    color: #444c56;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+  }
+
+  /* Finding body */
+  .finding-body { padding: 18px 18px 20px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #57606a;
+    margin-top: 16px;
+    margin-bottom: 4px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .finding-body p {
+    font-size: 13.5px;
+    color: #1f2328;
+    line-height: 1.65;
+  }
+
+  /* Code blocks */
+  pre {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 10px 13px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-x: auto;
+    margin-top: 6px;
+  }
+  .code-bad  { border-left: 3px solid #e53e3e; }
+  .code-good { border-left: 3px solid #38a169; }
+  .comment  { color: #57606a; }
+  .hi-bad   { color: #c0392b; font-weight: 600; }
+  .hi-good  { color: #276749; font-weight: 600; }
+
+  /* Summary table */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .summary-table th {
+    text-align: left;
+    padding: 7px 10px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #57606a;
+  }
+  .summary-table td {
+    padding: 7px 10px;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  .summary-table tr:nth-child(even) td { background: #fafafa; }
+
+  /* Doc discrepancy table */
+  .doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .doc-table th {
+    text-align: left;
+    padding: 7px 10px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #57606a;
+  }
+  .doc-table td {
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .doc-table tr:nth-child(even) td { background: #fafafa; }
+  .doc-table td:first-child {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .doc-stated  { color: #6b4c00; }
+  .doc-actual  { color: #9b1c1c; }
+  .doc-fix     { color: #276749; }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 12px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  
+  <div class="report-header">
+    <h1>Silent Failure Report</h1>
+    <p class="subtitle">Audit of <code>demo-app</code> — bugs that produce incorrect behavior without throwing errors, failing tests, or triggering linters; plus documentation discrepancies between <code>README.md</code> and actual code behavior.</p>
+    <div class="meta">
+      <span><strong>App</strong> Node / Express</span>
+      <span><strong>Files audited</strong> 9 source + README</span>
+      <span><strong>Code findings</strong> 4</span>
+      <span><strong>Doc discrepancies</strong> 5</span>
+      <span><strong>Categories</strong> Fail-Open · Race Condition · Swallowed Error · Data Contract · Docs</span>
+    </div>
+  </div>
+
+  
+  <div class="section-heading">Part 1 — Silent Code Bugs (ordered by severity)</div>
+
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>#</th><th>Severity</th><th>Category</th><th>Location</th><th>One-line summary</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><span class="badge badge-critical">Critical</span></td>
+        <td>Fail-Open</td>
+        <td><code>lib/auth.js · isAdmin()</code></td>
+        <td>A permissions-service timeout silently promotes any user to admin.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><span class="badge badge-high">High</span></td>
+        <td>Race Condition</td>
+        <td><code>routes/leaderboard.js · POST /:userId/score</code></td>
+        <td>Concurrent score updates read stale state, so the lower score can overwrite the higher one.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><span class="badge badge-medium">Medium</span></td>
+        <td>Swallowed Error</td>
+        <td><code>lib/fetchWithRetry.js · getPriceWithRetry()</code></td>
+        <td>After three failed retries, stale cached pricing is returned as if it were live data.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><span class="badge badge-low">Low</span></td>
+        <td>Data Contract</td>
+        <td><code>routes/profile.js · POST /profile</code></td>
+        <td>Profile writes <code>user_name</code> but every reader expects <code>username</code>, so the field is always <code>undefined</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">#1</div>
+      <div class="finding-header-text">
+        <h2>Fail-Open Auth — Permission Timeout Grants Admin Access <span class="badge badge-critical">Critical</span></h2>
+        <p class="finding-slide">"A permissions-service timeout silently promotes any user to admin."</p>
+        <div class="finding-meta">
+          <span class="tag">lib/auth.js</span>
+          <span class="tag">isAdmin()</span>
+          <span class="tag">routes/admin.js</span>
+          <span class="tag">DELETE /admin/wipe-data</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">What the code actually does</div>
+      <p><code>isAdmin()</code> calls <code>lookupRole()</code> inside a <code>try/catch</code>. When <code>lookupRole</code> throws (e.g., on a permissions-service timeout), the <code>catch</code> block returns <code>true</code> — granting admin status — instead of returning <code>false</code> and denying access. The <code>DELETE /admin/wipe-data</code> route relies exclusively on this check.</p>
+      <pre class="code-bad"><span class="comment">// lib/auth.js</span>
+function isAdmin(userId) {
+  try {
+    const role = lookupRole(userId);
+    return role === 'admin';
+  } catch (err) {
+    <span class="hi-bad">return true;  // ← grants admin on ANY exception</span>
+  }
+}</pre>
+      <div class="section-label">Why it's a silent failure</div>
+      <p>No error is logged, no exception propagates, and the HTTP response is a normal <code>200</code>. A test that mocks a healthy permissions service will never trigger the catch path. A linter has no visibility into the semantic meaning of a boolean return. The bug only activates when the permissions service is degraded — precisely when correct access control matters most.</p>
+      <div class="section-label">Root cause</div>
+      <p>The catch block conflates "I could not determine the role" with "I determined the role is admin." The correct fail-closed posture is to deny access whenever the authorization decision cannot be made with certainty.</p>
+      <div class="section-label">Suggested fix</div>
+      <pre class="code-good"><span class="comment">// lib/auth.js</span>
+function isAdmin(userId) {
+  try {
+    const role = lookupRole(userId);
+    return role === 'admin';
+  } catch (err) {
+    <span class="hi-good">return false;  // fail-closed: deny on uncertainty</span>
+  }
+}</pre>
+    </div>
+  </div>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">#2</div>
+      <div class="finding-header-text">
+        <h2>Race Condition — Stale Read Before Async Write Corrupts Leaderboard <span class="badge badge-high">High</span></h2>
+        <p class="finding-slide">"Concurrent score updates read stale state, so the lower score can overwrite the higher one."</p>
+        <div class="finding-meta">
+          <span class="tag">routes/leaderboard.js</span>
+          <span class="tag">POST /:userId/score</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">What the code actually does</div>
+      <p>The handler reads <code>current</code> from the Map, then <code>await</code>s a simulated async delay (representing a real DB round-trip), then compares <code>newScore &gt; current.score</code> using the <em>pre-await snapshot</em>. Two concurrent requests for the same user both read the same <code>current.score</code>, both decide their value wins the comparison, and whichever <code>await</code> resolves last writes its value — overwriting any update that landed during the delay.</p>
+      <pre class="code-bad"><span class="comment">// routes/leaderboard.js</span>
+const current = leaderboard.get(userId) || { score: 0 }; <span class="hi-bad">// ← stale snapshot</span>
+
+await new Promise((resolve) =&gt; setTimeout(resolve, Math.random() * 50)); <span class="hi-bad">// ← race window</span>
+
+if (newScore &gt; current.score) {   <span class="hi-bad">// ← compared against stale value</span>
+  leaderboard.set(userId, { score: newScore, updatedAt: Date.now() });
+}</pre>
+      <div class="section-label">Why it's a silent failure</div>
+      <p>Every request returns <code>{ status: 'ok' }</code>. No error is thrown. A sequential test suite will never interleave two requests. The leaderboard simply shows a silently incorrect score.</p>
+      <div class="section-label">Root cause</div>
+      <p>Classic TOCTOU race: the "check" (<code>current.score</code>) and the "act" (<code>leaderboard.set</code>) are not atomic. Async I/O between them creates a window where shared state can change, invalidating the check.</p>
+      <div class="section-label">Suggested fix</div>
+      <pre class="code-good"><span class="comment">// routes/leaderboard.js — re-read after the await</span>
+await new Promise((resolve) =&gt; setTimeout(resolve, Math.random() * 50));
+
+<span class="hi-good">const fresh = leaderboard.get(userId) || { score: 0 };</span>
+if (newScore &gt; <span class="hi-good">fresh</span>.score) {
+  leaderboard.set(userId, { score: newScore, updatedAt: Date.now() });
+}</pre>
+      <p style="margin-top:8px">For a real database, use an atomic compare-and-swap or a conditional <code>UPDATE … WHERE score &lt; $newScore</code>.</p>
+    </div>
+  </div>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">#3</div>
+      <div class="finding-header-text">
+        <h2>Swallowed Error — Stale Price Returned as Live After All Retries Fail <span class="badge badge-medium">Medium</span></h2>
+        <p class="finding-slide">"After three failed retries, stale cached pricing is returned as if it were live data."</p>
+        <div class="finding-meta">
+          <span class="tag">lib/fetchWithRetry.js</span>
+          <span class="tag">getPriceWithRetry()</span>
+          <span class="tag">routes/pricing.js</span>
+          <span class="tag">GET /pricing/price/:itemId</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">What the code actually does</div>
+      <p><code>getPriceWithRetry()</code> attempts to fetch live pricing three times. On the third failure, it silently returns a module-level <code>staleCache</code> object. The route sends <code>res.json(price)</code> with no wrapping, so the client receives a plain <code>200 OK</code> with stale data and no staleness signal.</p>
+      <pre class="code-bad"><span class="comment">// lib/fetchWithRetry.js</span>
+for (let attempt = 1; attempt &lt;= 3; attempt++) {
+  try {
+    return await fetchLivePrice(itemId);
+  } catch (err) {
+    if (attempt === 3) {
+      <span class="hi-bad">return staleCache; // ← error consumed; stale data looks identical to fresh</span>
+    }
+  }
+}</pre>
+      <div class="section-label">Why it's a silent failure</div>
+      <p>No flag field (<code>isStale</code>), no degraded HTTP status, no warning header. Callers and monitoring have no way to know the data is old. Unit tests that mock a healthy pricing service never reach the fallback branch.</p>
+      <div class="section-label">Root cause</div>
+      <p>The fallback conflates "available data" with "correct data." Returning stale data without marking it transfers the error silently into the user's decision-making.</p>
+      <div class="section-label">Suggested fix</div>
+      <pre class="code-good"><span class="comment">// lib/fetchWithRetry.js</span>
+if (attempt === 3) {
+  <span class="hi-good">return { ...staleCache, isStale: true, error: err.message };</span>
+}</pre>
+      <pre class="code-good"><span class="comment">// routes/pricing.js</span>
+const price = await getPriceWithRetry(req.params.itemId);
+<span class="hi-good">if (price.isStale) {
+  return res.status(203).json(price); // 203 = Non-Authoritative Information
+}</span>
+res.json(price);</pre>
+    </div>
+  </div>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">#4</div>
+      <div class="finding-header-text">
+        <h2>Data Contract Mismatch — <code>user_name</code> Written, <code>username</code> Read <span class="badge badge-low">Low</span></h2>
+        <p class="finding-slide">"Profile writes <code>user_name</code> but every reader expects <code>username</code>, so the field is always <code>undefined</code>."</p>
+        <div class="finding-meta">
+          <span class="tag">routes/profile.js</span>
+          <span class="tag">POST /profile</span>
+          <span class="tag">GET /profile/:id</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">What the code actually does</div>
+      <p><code>POST /profile</code> stores <code>{ id, user_name, email }</code>. <code>GET /profile/:id</code> reads back <code>user.username</code> — a field that was never written. The JSON response always omits <code>username</code> entirely (JS drops <code>undefined</code> during <code>JSON.stringify</code>), regardless of what was posted.</p>
+      <pre class="code-bad"><span class="comment">// POST writes:</span>
+users.set(id, { id, <span class="hi-bad">user_name</span>, email });
+
+<span class="comment">// GET reads:</span>
+res.json({ id: user.id, <span class="hi-bad">username: user.username</span>, email: user.email });
+<span class="comment">//                       ↑ never stored — always undefined → omitted from JSON</span></pre>
+      <div class="section-label">Why it's a silent failure</div>
+      <p>Both endpoints return <code>200 OK</code>. The field simply vanishes from the response. A linter can't detect a semantic mismatch between two string literals in separate functions. Unit tests of either handler in isolation would pass.</p>
+      <div class="section-label">Root cause</div>
+      <p>No shared schema enforces the field name between writer and reader. Snake_case was used on write; camelCase on read; no validation layer in between.</p>
+      <div class="section-label">Suggested fix</div>
+      <pre class="code-good"><span class="comment">// POST — normalize on write:</span>
+const { id, <span class="hi-good">username</span>, email } = req.body;
+users.set(id, { id, <span class="hi-good">username</span>, email });
+<span class="comment">// GET needs no change — user.username is now correct</span></pre>
+    </div>
+  </div>
+
+  
+  <div class="section-heading">Part 2 — README Documentation Discrepancies</div>
+
+  <p style="font-size:13.5px;color:#57606a;margin-bottom:16px">
+    The README lists six endpoints with brief descriptions. Cross-checking every claim against the actual source reveals five places where the documentation either omits critical behavior, misstates what the endpoint does, or describes the endpoint in a way that would give a reader a false sense of security.
+  </p>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">D1</div>
+      <div class="finding-header-text">
+        <h2>POST /profile — Documented as "save a user profile"; silently drops the username field <span class="badge badge-doc">Docs</span></h2>
+        <p class="finding-slide">"README says it saves a profile; it actually saves a profile with a broken field name that makes username permanently unreadable."</p>
+        <div class="finding-meta">
+          <span class="tag">README.md line 8</span>
+          <span class="tag">routes/profile.js:10</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">README states</div>
+      <p><em>"POST /profile — save a user profile"</em></p>
+      <div class="section-label">What the code actually does</div>
+      <p>Saves the profile but stores the name under the key <code>user_name</code> instead of <code>username</code>. Any subsequent read of the profile will find <code>username</code> is absent. The README gives no hint that the stored shape differs from the documented interface, and does not document the expected request body fields at all.</p>
+      <div class="section-label">Why it matters</div>
+      <p>A developer reading only the README would write a client that sends <code>{ id, username, email }</code> — and the data would be stored but the name would silently vanish. The doc should specify the accepted field names and note that <code>username</code> (not <code>user_name</code>) is the expected key.</p>
+      <div class="section-label">Suggested README fix</div>
+      <pre class="code-good">POST /profile — save a user profile
+  Body: { id, <span class="hi-good">username</span>, email }
+  Response: { status: 'ok' }</pre>
+    </div>
+  </div>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">D2</div>
+      <div class="finding-header-text">
+        <h2>DELETE /admin/wipe-data — Docs omit that a service timeout grants access, not denies it <span class="badge badge-doc">Docs</span></h2>
+        <p class="finding-slide">"README implies the endpoint is safely admin-gated; it does not document that an auth-service failure flips the gate open."</p>
+        <div class="finding-meta">
+          <span class="tag">README.md line 10</span>
+          <span class="tag">lib/auth.js:16</span>
+          <span class="tag">routes/admin.js:7</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">README states</div>
+      <p><em>"DELETE /admin/wipe-data — admin-only destructive action (x-user-id header)"</em></p>
+      <div class="section-label">What the code actually does</div>
+      <p>Uses <code>isAdmin()</code>, which returns <code>true</code> — and therefore grants access — whenever the permissions service throws. The README describes this as "admin-only" with no caveat that the auth check fails open, creating a false sense of security for anyone relying on the docs to assess the endpoint's safety.</p>
+      <div class="section-label">Why it matters</div>
+      <p>A security reviewer reading only the README would conclude the endpoint is properly protected. The actual behavior is the opposite under failure conditions. This is a documentation lie that masks a Critical-severity code bug (Finding #1 above).</p>
+      <div class="section-label">Suggested README fix</div>
+      <pre class="code-good">DELETE /admin/wipe-data — admin-only destructive action (x-user-id header)
+  ⚠ Auth check currently fails OPEN: a permissions-service error
+    grants access instead of denying it (see auth.js isAdmin).</pre>
+    </div>
+  </div>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">D3</div>
+      <div class="finding-header-text">
+        <h2>POST /leaderboard/:userId/score — Docs say "update a leaderboard score"; do not mention the only-if-higher logic or its race condition <span class="badge badge-doc">Docs</span></h2>
+        <p class="finding-slide">"README implies scores are updated unconditionally; the code applies a conditional write that is also racy."</p>
+        <div class="finding-meta">
+          <span class="tag">README.md line 11</span>
+          <span class="tag">routes/leaderboard.js:12</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">README states</div>
+      <p><em>"POST /leaderboard/:userId/score — update a leaderboard score"</em></p>
+      <div class="section-label">What the code actually does</div>
+      <p>Only updates the score if <code>newScore &gt; current.score</code> — it is a conditional best-score update, not a plain update. The README does not document this behavior, nor does it mention that the comparison is made against a stale read, making concurrent submissions unreliable.</p>
+      <div class="section-label">Why it matters</div>
+      <p>A caller sending a corrected (lower) score to fix a mistake would expect the score to update; it silently will not. The "only-if-higher" constraint is a material part of the contract that should be documented. It also means integration test authors who expect unconditional writes will get false positives.</p>
+      <div class="section-label">Suggested README fix</div>
+      <pre class="code-good">POST /leaderboard/:userId/score — update a user's best score
+  Body: { newScore }
+  Only writes if newScore is strictly greater than the stored score.
+  ⚠ Not safe for concurrent requests (TOCTOU race — see leaderboard.js).</pre>
+    </div>
+  </div>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">D4</div>
+      <div class="finding-header-text">
+        <h2>GET /pricing/price/:itemId — Docs imply a live price; code may silently return stale data with a 200 OK <span class="badge badge-doc">Docs</span></h2>
+        <p class="finding-slide">"README documents a pricing endpoint; it does not disclose that a service outage returns yesterday's price as if it were current."</p>
+        <div class="finding-meta">
+          <span class="tag">README.md line 13</span>
+          <span class="tag">lib/fetchWithRetry.js:14</span>
+          <span class="tag">routes/pricing.js:5</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">README states</div>
+      <p><em>"GET /pricing/price/:itemId — get item pricing"</em></p>
+      <div class="section-label">What the code actually does</div>
+      <p>Attempts to fetch live pricing; if all three retries fail, returns a stale cached value with <code>200 OK</code> and no indication of staleness. The word "get" in the README implies the current price, but the actual contract under failure is "get a possibly-stale price with no way to tell the difference."</p>
+      <div class="section-label">Why it matters</div>
+      <p>Any consumer relying on this endpoint for financial, billing, or display-accuracy purposes would not know to check for degraded responses. The documentation should disclose both the retry behavior and the stale-fallback contract.</p>
+      <div class="section-label">Suggested README fix</div>
+      <pre class="code-good">GET /pricing/price/:itemId — get item pricing (live with stale fallback)
+  Returns 200 with live price on success.
+  ⚠ If the pricing service is unavailable after 3 retries, returns
+    stale cached data. Add isStale flag check to detect this case.</pre>
+    </div>
+  </div>
+
+  
+  <div class="finding">
+    <div class="finding-header">
+      <div class="finding-number">D5</div>
+      <div class="finding-header-text">
+        <h2>Undocumented endpoint — GET / exists in code but is absent from the README <span class="badge badge-doc">Docs</span></h2>
+        <p class="finding-slide">"A health-check route is registered in server.js but never mentioned in the README."</p>
+        <div class="finding-meta">
+          <span class="tag">README.md (missing)</span>
+          <span class="tag">server.js:10</span>
+        </div>
+      </div>
+    </div>
+    <div class="finding-body">
+      <div class="section-label">README states</div>
+      <p><em>(nothing — the endpoint is not listed)</em></p>
+      <div class="section-label">What the code actually does</div>
+      <p><code>server.js</code> registers <code>GET /</code> which returns <code>{ status: 'quiet-fail-demo running' }</code>. This is a functional health-check endpoint that is omitted entirely from the documented endpoint list.</p>
+      <div class="section-label">Why it matters</div>
+      <p>Minor in isolation, but it means the README is an incomplete API surface description. Any tooling or documentation generator that treats the README as the source of truth will miss this route. It also sets a precedent where the docs and the code can drift silently.</p>
+      <div class="section-label">Suggested README fix</div>
+      <pre class="code-good"><span class="hi-good">GET / — health check; returns { status: 'quiet-fail-demo running' }</span>
+POST /profile — save a user profile
+...</pre>
+    </div>
+  </div>
+
+  
+  <div class="footer">Made with IBM Bob</div>
+
+</div>
+</body>
+</html>
